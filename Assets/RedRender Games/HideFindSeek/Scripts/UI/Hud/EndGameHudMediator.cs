@@ -58,7 +58,8 @@ namespace Game.UI
             if (_isWin)
             {
                 int coinsCollected = _gameView.GameHud.Coins;
-                if (coinsCollected > 0)
+                bool isAdReady = Game.Ads.AdManager.Instance != null && Game.Ads.AdManager.Instance.IsRewardedInterstitialAdReady();
+                if (coinsCollected > 0 && isAdReady)
                 {
                     _view.SetupRewardedButton("Watch Ad (Double Coins)", OnWatchDoubleCoinsRewardedAd);
                 }
@@ -70,12 +71,13 @@ namespace Game.UI
             else
             {
                 // Defeat screen
-                if (_gameStateManager.Current is GamePlayHideState)
+                bool isAdReady = Game.Ads.AdManager.Instance != null && Game.Ads.AdManager.Instance.IsRewardedAdReady();
+                if (_gameStateManager.Current is GamePlayHideState && isAdReady)
                 {
                     // Hide Mode (Employee): player got caught, show Revive ad button
                     _view.SetupRewardedButton("Watch Ad (Revive)", OnWatchReviveRewardedAd);
                 }
-                else if (_gameModel.IsTimeOut)
+                else if (_gameModel.IsTimeOut && isAdReady)
                 {
                     // Seek Mode (Boss): running out of time, show +30s ad button
                     _view.SetupRewardedButton("Watch Ad (+30s Time)", OnWatchExtraTimeRewardedAd);

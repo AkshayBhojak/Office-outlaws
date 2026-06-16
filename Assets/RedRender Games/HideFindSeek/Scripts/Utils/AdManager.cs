@@ -30,6 +30,16 @@ namespace Game.Ads
             return Application.internetReachability != NetworkReachability.NotReachable;
         }
 
+        public bool IsRewardedAdReady()
+        {
+            return _isAdMobEnabled && IsNetworkConnected() && _rewardedAd != null && _rewardedAd.CanShowAd();
+        }
+
+        public bool IsRewardedInterstitialAdReady()
+        {
+            return _isAdMobEnabled && IsNetworkConnected() && _rewardedInterstitialAd != null && _rewardedInterstitialAd.CanShowAd();
+        }
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -174,11 +184,40 @@ namespace Game.Ads
                     Debug.Log("[AdManager] Rewarded ad loaded.");
                     _rewardedAd = ad;
 
+                    _rewardedAd.OnAdFullScreenContentOpened += () =>
+                    {
+                        MobileAdsEventExecutor.ExecuteInUpdate(() =>
+                        {
+                            Debug.Log("[AdManager] Rewarded ad opened. Muting music.");
+                            if (Game.Audio.SoundManager.Instance != null)
+                            {
+                                Game.Audio.SoundManager.Instance.MuteMusicForAd(true);
+                            }
+                        });
+                    };
+
                     _rewardedAd.OnAdFullScreenContentClosed += () =>
                     {
                         MobileAdsEventExecutor.ExecuteInUpdate(() =>
                         {
-                            Debug.Log("[AdManager] Rewarded ad closed. Reloading...");
+                            Debug.Log("[AdManager] Rewarded ad closed. Unmuting music and reloading...");
+                            if (Game.Audio.SoundManager.Instance != null)
+                            {
+                                Game.Audio.SoundManager.Instance.MuteMusicForAd(false);
+                            }
+                            LoadRewardedAd();
+                        });
+                    };
+
+                    _rewardedAd.OnAdFullScreenContentFailed += (AdError error) =>
+                    {
+                        MobileAdsEventExecutor.ExecuteInUpdate(() =>
+                        {
+                            Debug.LogError("[AdManager] Rewarded ad failed to show: " + error.GetMessage());
+                            if (Game.Audio.SoundManager.Instance != null)
+                            {
+                                Game.Audio.SoundManager.Instance.MuteMusicForAd(false);
+                            }
                             LoadRewardedAd();
                         });
                     };
@@ -245,11 +284,40 @@ namespace Game.Ads
                     Debug.Log("[AdManager] Rewarded Interstitial ad loaded.");
                     _rewardedInterstitialAd = ad;
 
+                    _rewardedInterstitialAd.OnAdFullScreenContentOpened += () =>
+                    {
+                        MobileAdsEventExecutor.ExecuteInUpdate(() =>
+                        {
+                            Debug.Log("[AdManager] Rewarded Interstitial ad opened. Muting music.");
+                            if (Game.Audio.SoundManager.Instance != null)
+                            {
+                                Game.Audio.SoundManager.Instance.MuteMusicForAd(true);
+                            }
+                        });
+                    };
+
                     _rewardedInterstitialAd.OnAdFullScreenContentClosed += () =>
                     {
                         MobileAdsEventExecutor.ExecuteInUpdate(() =>
                         {
-                            Debug.Log("[AdManager] Rewarded Interstitial ad closed. Reloading...");
+                            Debug.Log("[AdManager] Rewarded Interstitial ad closed. Unmuting music and reloading...");
+                            if (Game.Audio.SoundManager.Instance != null)
+                            {
+                                Game.Audio.SoundManager.Instance.MuteMusicForAd(false);
+                            }
+                            LoadRewardedInterstitialAd();
+                        });
+                    };
+
+                    _rewardedInterstitialAd.OnAdFullScreenContentFailed += (AdError error) =>
+                    {
+                        MobileAdsEventExecutor.ExecuteInUpdate(() =>
+                        {
+                            Debug.LogError("[AdManager] Rewarded Interstitial ad failed to show: " + error.GetMessage());
+                            if (Game.Audio.SoundManager.Instance != null)
+                            {
+                                Game.Audio.SoundManager.Instance.MuteMusicForAd(false);
+                            }
                             LoadRewardedInterstitialAd();
                         });
                     };

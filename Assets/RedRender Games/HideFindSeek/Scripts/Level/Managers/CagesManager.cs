@@ -8,6 +8,7 @@ namespace Game
     public sealed class CagesManager : Mediator<GameView>
     {
         [Inject] private GameManager _gameManager;
+        [Inject] private Game.Audio.SoundManager _soundManager;
         
         private readonly Dictionary<AnimationUnitView, Transform> _cagesMap;
 
@@ -38,6 +39,11 @@ namespace Game
             cage.localScale = Vector3.one;
 
             _cagesMap[unit] = cage;
+
+            if (_soundManager != null)
+            {
+                _soundManager.PlayCaughtSound();
+            }
         }
 
         private void UnitRescued(AnimationUnitView unit)

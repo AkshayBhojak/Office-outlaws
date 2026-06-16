@@ -63,9 +63,19 @@ namespace Game.UI
 
         private Button _btnRewarded;
         private TextMeshProUGUI _txtRewardedLabel;
+        private Vector2? _originalRestartPos;
 
         public void SetupRewardedButton(string buttonText, System.Action onWatchAdClicked)
         {
+            RectTransform restartRect = BtnRestart.GetComponent<RectTransform>();
+            if (!_originalRestartPos.HasValue)
+            {
+                _originalRestartPos = restartRect.anchoredPosition;
+            }
+
+            // Move BtnRestart up by 30 units to make space
+            restartRect.anchoredPosition = _originalRestartPos.Value + new Vector2(0f, 30f);
+
             if (_btnRewarded != null)
             {
                 _btnRewarded.gameObject.SetActive(true);
@@ -73,6 +83,10 @@ namespace Game.UI
                 {
                     _txtRewardedLabel.text = buttonText;
                 }
+
+                // Update position of the rewarded button relative to the updated restart position
+                _btnRewarded.GetComponent<RectTransform>().anchoredPosition = restartRect.anchoredPosition + new Vector2(0f, -180f);
+
                 _btnRewarded.onClick.RemoveAllListeners();
                 _btnRewarded.onClick.AddListener(() => onWatchAdClicked?.Invoke());
                 return;
@@ -83,9 +97,8 @@ namespace Game.UI
             rewardedGo.name = "BtnRewarded";
 
             // Position it below BtnRestart
-            RectTransform restartRect = BtnRestart.GetComponent<RectTransform>();
             RectTransform rewardedRect = rewardedGo.GetComponent<RectTransform>();
-            rewardedRect.anchoredPosition = restartRect.anchoredPosition + new Vector2(0f, -140f);
+            rewardedRect.anchoredPosition = restartRect.anchoredPosition + new Vector2(0f, -180f);
 
             _btnRewarded = rewardedGo.GetComponent<Button>();
             _btnRewarded.onClick.RemoveAllListeners();
@@ -110,6 +123,12 @@ namespace Game.UI
             if (_btnRewarded != null)
             {
                 _btnRewarded.gameObject.SetActive(false);
+            }
+
+            if (_originalRestartPos.HasValue)
+            {
+                RectTransform restartRect = BtnRestart.GetComponent<RectTransform>();
+                restartRect.anchoredPosition = _originalRestartPos.Value;
             }
         }
     }

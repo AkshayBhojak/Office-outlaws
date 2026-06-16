@@ -12,7 +12,10 @@ namespace Game.Audio
         private AudioClip _coinSound;
         private AudioClip _winSound;
         private AudioClip _gameOverSound;
-        private AudioClip _bgMusic;
+        private AudioClip _bgMusic1;
+        private AudioClip _bgMusic2;
+        private AudioClip _caughtSound;
+        private AudioClip _pushSound;
 
         private bool _sfxEnabled = true;
         private bool _musicEnabled = true;
@@ -72,22 +75,59 @@ namespace Game.Audio
                 _winSound = Resources.Load<AudioClip>("CasualGameSounds/WinSound");
             }
 
-            _gameOverSound = Resources.Load<AudioClip>("CasualGameSounds/GameOverSound");
-            _bgMusic = Resources.Load<AudioClip>("CasualGameSounds/dominoespizzaakacatchme");
-
-            // Play background music
-            if (_bgMusic != null)
+            _gameOverSound = Resources.Load<AudioClip>("CasualGameSounds/lose02");
+            if (_gameOverSound == null)
             {
-                _musicSource.clip = _bgMusic;
-                UpdateMusicState();
+                _gameOverSound = Resources.Load<AudioClip>("CasualGameSounds/GameOverSound");
             }
+
+            _caughtSound = Resources.Load<AudioClip>("CasualGameSounds/Caught");
+            _pushSound = Resources.Load<AudioClip>("CasualGameSounds/BonusSound");
+
+            _bgMusic1 = Resources.Load<AudioClip>("CasualGameSounds/Pocket_Sized_Heist");
+            _bgMusic2 = Resources.Load<AudioClip>("CasualGameSounds/Velvet_Glove_Escape");
+
+            // Play random background music
+            PlayRandomBgm();
+        }
+
+        public void PlayRandomBgm()
+        {
+            if (_bgMusic1 == null && _bgMusic2 == null) return;
+
+            AudioClip selected = null;
+            if (_bgMusic1 != null && _bgMusic2 != null)
+            {
+                selected = Random.value > 0.5f ? _bgMusic1 : _bgMusic2;
+            }
+            else
+            {
+                selected = _bgMusic1 != null ? _bgMusic1 : _bgMusic2;
+            }
+
+            if (selected != null && _musicSource != null)
+            {
+                if (_musicSource.clip != selected || !_musicSource.isPlaying)
+                {
+                    _musicSource.clip = selected;
+                    UpdateMusicState();
+                }
+            }
+        }
+
+        private bool _isAdMuted = false;
+
+        public void MuteMusicForAd(bool mute)
+        {
+            _isAdMuted = mute;
+            UpdateMusicState();
         }
 
         private void UpdateMusicState()
         {
             if (_musicSource == null) return;
 
-            if (_musicEnabled)
+            if (_musicEnabled && !_isAdMuted)
             {
                 if (!_musicSource.isPlaying)
                 {
@@ -122,6 +162,22 @@ namespace Game.Audio
             if (_sfxEnabled && _gameOverSound != null && _sfxSource != null)
             {
                 _sfxSource.PlayOneShot(_gameOverSound);
+            }
+        }
+
+        public void PlayCaughtSound()
+        {
+            if (_sfxEnabled && _caughtSound != null && _sfxSource != null)
+            {
+                _sfxSource.PlayOneShot(_caughtSound);
+            }
+        }
+
+        public void PlayPushSound()
+        {
+            if (_sfxEnabled && _pushSound != null && _sfxSource != null)
+            {
+                _sfxSource.PlayOneShot(_pushSound);
             }
         }
     }

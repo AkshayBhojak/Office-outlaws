@@ -24,6 +24,9 @@ namespace Game
         [SerializeField]
         public NavMeshAgent MeshAgent;
 
+        [HideInInspector]
+        public Vector3 KnockbackVelocity;
+
         private bool _isVictim;
         private bool _isVissible;
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Enemy;
@@ -25,6 +25,7 @@ namespace Game
 
         public PlayerController Player => _player;
         public int EnemiesCount => _enemies.Count;
+        public System.Collections.Generic.IReadOnlyList<EnemyController> Enemies => _enemies;
 
         public GameManager()
         {

@@ -133,6 +133,9 @@ namespace Game.UI
 
             // 6. Setup and display Levels selection button!
             SetupLevelsButton();
+
+            // 7. Setup and display Settings button!
+            SetupSettingsButton();
         }
 
         private Button _btnLevels;
@@ -496,6 +499,291 @@ namespace Game.UI
             if (_btnEasy != null) _btnEasy.GetComponent<Image>().color = (currentDiff == 0) ? activeColor : inactiveColor;
             if (_btnMedium != null) _btnMedium.GetComponent<Image>().color = (currentDiff == 1) ? activeColor : inactiveColor;
             if (_btnHard != null) _btnHard.GetComponent<Image>().color = (currentDiff == 2) ? activeColor : inactiveColor;
+        }
+
+        private Button _btnSettings;
+        private GameObject _settingsPanel;
+        private Sprite _toggleOnSprite;
+        private Sprite _toggleOffSprite;
+        private Image _imgSoundToggle;
+        private Image _imgMusicToggle;
+
+        private void SetupSettingsButton()
+        {
+            if (_btnSettings != null) return;
+
+            // Instantiate settings button (duplicate levels button or BtnSeek)
+            GameObject settingsGo = Instantiate(BtnSeek.gameObject, transform);
+            settingsGo.name = "BtnSettings";
+
+            // Sizing and positioning: Top-Right of the screen
+            RectTransform rectSettings = settingsGo.GetComponent<RectTransform>();
+            rectSettings.anchorMin = new Vector2(1f, 1f);
+            rectSettings.anchorMax = new Vector2(1f, 1f);
+            rectSettings.pivot = new Vector2(1f, 1f);
+            rectSettings.sizeDelta = new Vector2(85f, 85f);
+            rectSettings.anchoredPosition = new Vector2(-40f, -40f);
+
+            // Destroy all children to avoid any leftover icon/text rendering on top
+            foreach (Transform child in settingsGo.transform)
+            {
+                Destroy(child.gameObject);
+            }
+
+            _btnSettings = settingsGo.GetComponent<Button>();
+            _btnSettings.onClick.RemoveAllListeners();
+            _btnSettings.onClick.AddListener(OpenSettingsPanel);
+
+            // Set Gear Sprite (Setting.png)
+            Image img = settingsGo.GetComponent<Image>();
+            if (img != null)
+            {
+                img.sprite = Resources.Load<Sprite>("UI/Setting");
+                img.color = Color.white;
+            }
+
+            if (settingsGo.GetComponent<UIButtonAnimator>() == null)
+            {
+                settingsGo.AddComponent<UIButtonAnimator>();
+            }
+
+            // Animate entry
+            settingsGo.transform.localScale = Vector3.zero;
+            settingsGo.transform.DOScale(Vector3.one, 0.5f).SetDelay(0.4f).SetEase(Ease.OutBack).SetUpdate(true);
+        }
+
+        private void OpenSettingsPanel()
+        {
+            if (_settingsPanel == null)
+            {
+                SetupSettingsPanel();
+            }
+
+            UpdateToggleUI();
+
+            _settingsPanel.SetActive(true);
+
+            var panelBox = _settingsPanel.transform.Find("PanelBox");
+            if (panelBox != null)
+            {
+                panelBox.localScale = Vector3.zero;
+                panelBox.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutBack).SetUpdate(true);
+            }
+        }
+
+        private void SetupSettingsPanel()
+        {
+            // Load Toggle Sprites
+            var sprites = Resources.LoadAll<Sprite>("UI/on-off");
+            _toggleOnSprite = System.Array.Find(sprites, s => s.name == "on-off_0");
+            _toggleOffSprite = System.Array.Find(sprites, s => s.name == "on-off_1");
+
+            // 1. Create main panel root
+            GameObject panelGo = new GameObject("SettingsPanel", typeof(RectTransform));
+            panelGo.transform.SetParent(transform, false);
+            _settingsPanel = panelGo;
+
+            RectTransform rectPanel = panelGo.GetComponent<RectTransform>();
+            rectPanel.anchorMin = Vector2.zero;
+            rectPanel.anchorMax = Vector2.one;
+            rectPanel.sizeDelta = Vector2.zero;
+            rectPanel.anchoredPosition = Vector2.zero;
+
+            Image bgOverlay = panelGo.AddComponent<Image>();
+            bgOverlay.color = new Color(0f, 0f, 0f, 0.85f);
+            bgOverlay.raycastTarget = true;
+
+            // 2. Create PanelBox container
+            GameObject boxGo = new GameObject("PanelBox", typeof(RectTransform), typeof(Image));
+            boxGo.transform.SetParent(panelGo.transform, false);
+            RectTransform rectBox = boxGo.GetComponent<RectTransform>();
+            rectBox.anchorMin = new Vector2(0.5f, 0.5f);
+            rectBox.anchorMax = new Vector2(0.5f, 0.5f);
+            rectBox.sizeDelta = new Vector2(550f, 500f);
+            rectBox.anchoredPosition = Vector2.zero;
+
+            Image boxImg = boxGo.GetComponent<Image>();
+            boxImg.color = new Color(0.12f, 0.12f, 0.15f, 0.98f);
+
+            var outline = boxGo.AddComponent<Outline>();
+            outline.effectColor = new Color(0.35f, 0.35f, 0.4f, 0.5f);
+            outline.effectDistance = new Vector2(3f, 3f);
+
+            // 3. Header Text
+            GameObject titleGo = new GameObject("TitleText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            titleGo.transform.SetParent(boxGo.transform, false);
+            RectTransform rectTitle = titleGo.GetComponent<RectTransform>();
+            rectTitle.anchorMin = new Vector2(0.5f, 1f);
+            rectTitle.anchorMax = new Vector2(0.5f, 1f);
+            rectTitle.anchoredPosition = new Vector2(0f, -50f);
+            rectTitle.sizeDelta = new Vector2(400f, 60f);
+
+            var titleTxt = titleGo.GetComponent<TextMeshProUGUI>();
+            titleTxt.text = "<color=#ffffff>SETTINGS</color>";
+            titleTxt.font = TxtLevelName.font;
+            titleTxt.fontSize = 42f;
+            titleTxt.alignment = TextAlignmentOptions.Center;
+
+            // 4. Close Button (Top Right of PanelBox, Fresh GameObject to avoid BtnSeek duplicates)
+            GameObject closeGo = new GameObject("BtnCloseSettings", typeof(RectTransform), typeof(Image), typeof(Button));
+            closeGo.transform.SetParent(boxGo.transform, false);
+            RectTransform rectClose = closeGo.GetComponent<RectTransform>();
+            rectClose.anchorMin = new Vector2(1f, 1f);
+            rectClose.anchorMax = new Vector2(1f, 1f);
+            rectClose.pivot = new Vector2(1f, 1f);
+            rectClose.anchoredPosition = new Vector2(-20f, -20f);
+            rectClose.sizeDelta = new Vector2(55f, 55f);
+
+            var closeImg = closeGo.GetComponent<Image>();
+            closeImg.sprite = Resources.Load<Sprite>("UI/close-button");
+            closeImg.color = Color.white;
+
+            Button closeBtn = closeGo.GetComponent<Button>();
+            closeBtn.onClick.RemoveAllListeners();
+            closeBtn.onClick.AddListener(() => _settingsPanel.SetActive(false));
+
+            if (closeGo.GetComponent<UIButtonAnimator>() == null)
+            {
+                closeGo.AddComponent<UIButtonAnimator>();
+            }
+
+            // 5. Sound FX Row
+            GameObject soundRowGo = new GameObject("SoundRow", typeof(RectTransform));
+            soundRowGo.transform.SetParent(boxGo.transform, false);
+            RectTransform rectSoundRow = soundRowGo.GetComponent<RectTransform>();
+            rectSoundRow.anchorMin = new Vector2(0.5f, 0.5f);
+            rectSoundRow.anchorMax = new Vector2(0.5f, 0.5f);
+            rectSoundRow.anchoredPosition = new Vector2(0f, 60f);
+            rectSoundRow.sizeDelta = new Vector2(450f, 80f);
+
+            GameObject soundTextGo = new GameObject("SoundText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            soundTextGo.transform.SetParent(soundRowGo.transform, false);
+            RectTransform rectSoundText = soundTextGo.GetComponent<RectTransform>();
+            rectSoundText.anchorMin = new Vector2(0f, 0.5f);
+            rectSoundText.anchorMax = new Vector2(0f, 0.5f);
+            rectSoundText.pivot = new Vector2(0f, 0.5f);
+            rectSoundText.anchoredPosition = new Vector2(20f, 0f);
+            rectSoundText.sizeDelta = new Vector2(250f, 50f);
+
+            var soundTxt = soundTextGo.GetComponent<TextMeshProUGUI>();
+            soundTxt.text = "SOUND FX";
+            soundTxt.font = TxtLevelName.font;
+            soundTxt.fontSize = 32f;
+            soundTxt.alignment = TextAlignmentOptions.MidlineLeft;
+
+            GameObject soundToggleGo = Instantiate(BtnSeek.gameObject, soundRowGo.transform);
+            soundToggleGo.name = "BtnSoundToggle";
+            RectTransform rectSoundToggle = soundToggleGo.GetComponent<RectTransform>();
+            rectSoundToggle.anchorMin = new Vector2(1f, 0.5f);
+            rectSoundToggle.anchorMax = new Vector2(1f, 0.5f);
+            rectSoundToggle.pivot = new Vector2(1f, 0.5f);
+            rectSoundToggle.anchoredPosition = new Vector2(-20f, 0f);
+            rectSoundToggle.sizeDelta = new Vector2(120f, 60f);
+
+            // Destroy all children to avoid any leftover icon/text rendering on top
+            foreach (Transform child in soundToggleGo.transform)
+            {
+                Destroy(child.gameObject);
+            }
+
+            _imgSoundToggle = soundToggleGo.GetComponent<Image>();
+            _imgSoundToggle.color = Color.white;
+
+            Button soundToggleBtn = soundToggleGo.GetComponent<Button>();
+            soundToggleBtn.onClick.RemoveAllListeners();
+            soundToggleBtn.onClick.AddListener(ToggleSound);
+
+            if (soundToggleGo.GetComponent<UIButtonAnimator>() == null)
+            {
+                soundToggleGo.AddComponent<UIButtonAnimator>();
+            }
+
+            // 6. Music Row
+            GameObject musicRowGo = new GameObject("MusicRow", typeof(RectTransform));
+            musicRowGo.transform.SetParent(boxGo.transform, false);
+            RectTransform rectMusicRow = musicRowGo.GetComponent<RectTransform>();
+            rectMusicRow.anchorMin = new Vector2(0.5f, 0.5f);
+            rectMusicRow.anchorMax = new Vector2(0.5f, 0.5f);
+            rectMusicRow.anchoredPosition = new Vector2(0f, -60f);
+            rectMusicRow.sizeDelta = new Vector2(450f, 80f);
+
+            GameObject musicTextGo = new GameObject("MusicText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            musicTextGo.transform.SetParent(musicRowGo.transform, false);
+            RectTransform rectMusicText = musicTextGo.GetComponent<RectTransform>();
+            rectMusicText.anchorMin = new Vector2(0f, 0.5f);
+            rectMusicText.anchorMax = new Vector2(0f, 0.5f);
+            rectMusicText.pivot = new Vector2(0f, 0.5f);
+            rectMusicText.anchoredPosition = new Vector2(20f, 0f);
+            rectMusicText.sizeDelta = new Vector2(250f, 50f);
+
+            var musicTxt = musicTextGo.GetComponent<TextMeshProUGUI>();
+            musicTxt.text = "MUSIC";
+            musicTxt.font = TxtLevelName.font;
+            musicTxt.fontSize = 32f;
+            musicTxt.alignment = TextAlignmentOptions.MidlineLeft;
+
+            GameObject musicToggleGo = Instantiate(BtnSeek.gameObject, musicRowGo.transform);
+            musicToggleGo.name = "BtnMusicToggle";
+            RectTransform rectMusicToggle = musicToggleGo.GetComponent<RectTransform>();
+            rectMusicToggle.anchorMin = new Vector2(1f, 0.5f);
+            rectMusicToggle.anchorMax = new Vector2(1f, 0.5f);
+            rectMusicToggle.pivot = new Vector2(1f, 0.5f);
+            rectMusicToggle.anchoredPosition = new Vector2(-20f, 0f);
+            rectMusicToggle.sizeDelta = new Vector2(120f, 60f);
+
+            // Destroy all children to avoid any leftover icon/text rendering on top
+            foreach (Transform child in musicToggleGo.transform)
+            {
+                Destroy(child.gameObject);
+            }
+
+            _imgMusicToggle = musicToggleGo.GetComponent<Image>();
+            _imgMusicToggle.color = Color.white;
+
+            Button musicToggleBtn = musicToggleGo.GetComponent<Button>();
+            musicToggleBtn.onClick.RemoveAllListeners();
+            musicToggleBtn.onClick.AddListener(ToggleMusic);
+
+            if (musicToggleGo.GetComponent<UIButtonAnimator>() == null)
+            {
+                musicToggleGo.AddComponent<UIButtonAnimator>();
+            }
+        }
+
+        private void ToggleSound()
+        {
+            if (Game.Audio.SoundManager.Instance != null)
+            {
+                Game.Audio.SoundManager.Instance.SfxEnabled = !Game.Audio.SoundManager.Instance.SfxEnabled;
+                UpdateToggleUI();
+                Game.Audio.SoundManager.Instance.PlayCoinSound();
+            }
+        }
+
+        private void ToggleMusic()
+        {
+            if (Game.Audio.SoundManager.Instance != null)
+            {
+                Game.Audio.SoundManager.Instance.MusicEnabled = !Game.Audio.SoundManager.Instance.MusicEnabled;
+                UpdateToggleUI();
+            }
+        }
+
+        private void UpdateToggleUI()
+        {
+            if (Game.Audio.SoundManager.Instance == null) return;
+
+            bool soundOn = Game.Audio.SoundManager.Instance.SfxEnabled;
+            bool musicOn = Game.Audio.SoundManager.Instance.MusicEnabled;
+
+            if (_imgSoundToggle != null)
+            {
+                _imgSoundToggle.sprite = soundOn ? _toggleOnSprite : _toggleOffSprite;
+            }
+            if (_imgMusicToggle != null)
+            {
+                _imgMusicToggle.sprite = musicOn ? _toggleOnSprite : _toggleOffSprite;
+            }
         }
     }
 }

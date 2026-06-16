@@ -12,6 +12,7 @@ namespace Game.UI
         [Inject] private GameModel _gameModel;
         [Inject] private GameStateManager _gameStateManager;
         [Inject] private GameView _gameView;
+        [Inject] private Game.Audio.SoundManager _soundManager;
 
         private readonly bool _isWin;
 
@@ -27,6 +28,19 @@ namespace Game.UI
 
             // Setup and animate result title
             _view.SetupResultTitle(_isWin);
+
+            // Play victory or defeat sound
+            if (_soundManager != null)
+            {
+                if (_isWin)
+                {
+                    _soundManager.PlayWinSound();
+                }
+                else
+                {
+                    _soundManager.PlayGameOverSound();
+                }
+            }
 
             // Attach hover and click animator to restart button
             if (_view.BtnRestart.GetComponent<UIButtonAnimator>() == null)

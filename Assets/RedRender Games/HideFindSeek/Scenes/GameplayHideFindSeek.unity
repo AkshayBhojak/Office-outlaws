@@ -1074,6 +1074,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8348480857124099567, guid: 233e02adee179e5478691e253cac83c1,
+        type: 3}
+      propertyPath: 'm_ActiveFontFeatures.Array.data[0]'
+      value: 1801810542
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1252,6 +1257,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de817af3c3a1a9640ba97edae5209fed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Ads.AdManager
+  _adMobAppId: ca-app-pub-3940256099942544~3347511713
   _bannerAdUnitId: ca-app-pub-3940256099942544/6300978111
   _interstitialAdUnitId: ca-app-pub-3940256099942544/1033173712
   _rewardedAdUnitId: ca-app-pub-3940256099942544/5224354917
@@ -2684,6 +2690,11 @@ PrefabInstance:
       propertyPath: m_fontSize
       value: 51.4
       objectReference: {fileID: 0}
+    - target: {fileID: 6768227819901641228, guid: d58f0f556fde8424699acfe0a6e4f40a,
+        type: 3}
+      propertyPath: 'm_ActiveFontFeatures.Array.data[0]'
+      value: 1801810542
+      objectReference: {fileID: 0}
     - target: {fileID: 7058432903898000313, guid: d58f0f556fde8424699acfe0a6e4f40a,
         type: 3}
       propertyPath: m_IsActive
@@ -2698,6 +2709,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_fontSize
       value: 52.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 8407351763078249274, guid: d58f0f556fde8424699acfe0a6e4f40a,
+        type: 3}
+      propertyPath: 'm_ActiveFontFeatures.Array.data[0]'
+      value: 1801810542
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

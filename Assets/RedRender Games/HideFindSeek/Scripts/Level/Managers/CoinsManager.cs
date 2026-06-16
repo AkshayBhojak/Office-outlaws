@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Game.Config;
 using Game.Core;
 using Game.Core.UI;
@@ -13,6 +13,7 @@ namespace Game
         [Inject] private GameConfig _config;
         [Inject] private GameManager _gameManager;
         [Inject] private GameView _gameView;
+        [Inject] private Game.Audio.SoundManager _soundManager;
 
         private readonly List<ParticleSystem> _effects;
 
@@ -63,6 +64,11 @@ namespace Game
                         if (unit.IsVictim)
                         {
                             _gameManager.FireSound(coin.transform.position);
+                        }
+
+                        if (_gameManager.Player != null && _gameManager.Player.View == unit)
+                        {
+                            _soundManager.PlayCoinSound();
                         }
                     }
                 }

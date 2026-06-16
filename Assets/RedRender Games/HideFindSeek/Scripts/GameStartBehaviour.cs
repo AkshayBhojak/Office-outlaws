@@ -26,6 +26,12 @@ namespace Game
                 new GameObject("AdManager", typeof(Game.Ads.AdManager));
             }
 
+            // Instantiate SoundManager
+            if (FindObjectOfType<Game.Audio.SoundManager>() == null)
+            {
+                new GameObject("SoundManager", typeof(Game.Audio.SoundManager));
+            }
+
             var context = new Context();
 
             context.Install(
@@ -35,6 +41,13 @@ namespace Game
             );
             context.Install(GetComponents<Component>());
             context.Install(_timer);
+
+            var soundManager = FindObjectOfType<Game.Audio.SoundManager>();
+            if (soundManager != null)
+            {
+                context.Install(soundManager);
+            }
+
             context.ApplyInstall();
 
             context.Get<GameStateManager>().SwitchToState(typeof(GameInitializeState));

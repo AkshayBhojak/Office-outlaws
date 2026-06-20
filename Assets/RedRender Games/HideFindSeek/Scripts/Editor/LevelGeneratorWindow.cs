@@ -388,14 +388,14 @@ namespace Game.LevelGenerator
             GameObject spotlightsGO = new GameObject("Spotlights");
             spotlightsGO.transform.SetParent(lightContainer, false);
 
-            // Define grid positions for 5 spotlights
+            // Define grid positions for 5 spotlights (spread further out and raised slightly)
             Vector3[] positions = new Vector3[]
             {
-                new Vector3(0f, 6f, 0f),       // Center
-                new Vector3(-4.5f, 6f, -4.5f), // Bottom-Left
-                new Vector3(-4.5f, 6f, 4.5f),  // Top-Left
-                new Vector3(4.5f, 6f, -4.5f),  // Bottom-Right
-                new Vector3(4.5f, 6f, 4.5f)    // Top-Right
+                new Vector3(0f, 6.5f, 0f),       // Center
+                new Vector3(-6.8f, 6.5f, -6.8f), // Bottom-Left
+                new Vector3(-6.8f, 6.5f, 6.8f),  // Top-Left
+                new Vector3(6.8f, 6.5f, -6.8f),  // Bottom-Right
+                new Vector3(6.8f, 6.5f, 6.8f)    // Top-Right
             };
 
             for (int i = 0; i < positions.Length; i++)
@@ -407,10 +407,10 @@ namespace Game.LevelGenerator
 
                 Light lightComp = spotGO.AddComponent<Light>();
                 lightComp.type = LightType.Spot;
-                lightComp.range = 10f;
-                lightComp.spotAngle = 75f;
+                lightComp.range = 18f;
+                lightComp.spotAngle = 105f;
                 lightComp.color = spotlightColor;
-                lightComp.intensity = 5f;
+                lightComp.intensity = 8f;
                 lightComp.shadows = LightShadows.Hard; // Shadows cast behind office objects
             }
         }
@@ -520,19 +520,19 @@ namespace Game.LevelGenerator
                 }
             }
 
-            // Position Player in the center (UnitA or PlayerA)
-            var player = levelView.transform.Find("UnitA") ?? levelView.transform.Find("PlayerA");
-            if (player != null)
+            // Position Boss (Suit/Seeker model) in the center (0, y, 0) so it becomes Units[0]
+            Transform bossTransform = levelView.transform.Find("UnitF") ?? levelView.transform.Find("EnemyE") ?? levelView.transform.Find("EnemyF");
+            if (bossTransform != null)
             {
-                player.position = new Vector3(0f, player.position.y, 0f);
+                bossTransform.position = new Vector3(0f, bossTransform.position.y, 0f);
             }
 
-            // Reposition Enemies at random open spots (UnitB-F or EnemyB-F)
-            string[] enemyNames = { "UnitB", "UnitC", "UnitD", "UnitE", "UnitF", "EnemyB", "EnemyC", "EnemyD", "EnemyE", "EnemyF" };
-            foreach (var enemyName in enemyNames)
+            // Reposition other units at random open spots (including UnitA/PlayerA which are the Employee/Hider players)
+            string[] allUnitNames = { "UnitA", "UnitB", "UnitC", "UnitD", "UnitE", "UnitF", "PlayerA", "EnemyB", "EnemyC", "EnemyD", "EnemyE", "EnemyF" };
+            foreach (var enemyName in allUnitNames)
             {
                 var enemy = levelView.transform.Find(enemyName);
-                if (enemy != null)
+                if (enemy != null && enemy != bossTransform)
                 {
                     Vector3 pos = Vector3.zero;
                     bool valid = false;

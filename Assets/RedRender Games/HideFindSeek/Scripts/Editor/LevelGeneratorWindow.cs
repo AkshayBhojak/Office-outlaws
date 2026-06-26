@@ -8,10 +8,14 @@ namespace Game.LevelGenerator
 {
     public class LevelGeneratorWindow : EditorWindow
     {
-        private int _startLevel = 4;
+        private int _startLevel = 1;
         private int _endLevel = 10;
         private string _templateScenePath = "Assets/RedRender Games/HideFindSeek/Scenes/Level1.unity";
         private string _scenesFolder = "Assets/RedRender Games/HideFindSeek/Scenes";
+        private float _levelScale = 1.5f;
+        private float _minWallDistance = 3.0f;
+        private float _innerWallLengthMultiplier = 1.4f;
+        public bool silentMode = false;
 
         [MenuItem("Window/Hide Find Seek/Level Generator")]
         public static void ShowWindow()
@@ -28,6 +32,9 @@ namespace Game.LevelGenerator
             _endLevel = EditorGUILayout.IntField("End Level Index", _endLevel);
             _templateScenePath = EditorGUILayout.TextField("Template Scene Path", _templateScenePath);
             _scenesFolder = EditorGUILayout.TextField("Output Scenes Folder", _scenesFolder);
+            _levelScale = EditorGUILayout.FloatField("Level Size Multiplier", _levelScale);
+            _minWallDistance = EditorGUILayout.FloatField("Min Wall Distance", _minWallDistance);
+            _innerWallLengthMultiplier = EditorGUILayout.FloatField("Inner Wall Length Multiplier", _innerWallLengthMultiplier);
 
             EditorGUILayout.Space();
 
@@ -45,7 +52,7 @@ namespace Game.LevelGenerator
             }
         }
 
-        private void ReskinProjectMaterials()
+        public void ReskinProjectMaterials()
         {
             Debug.Log("[LevelGenerator] Applying Office Outlaws material reskin to project assets...");
 
@@ -119,16 +126,43 @@ namespace Game.LevelGenerator
             Debug.Log("[LevelGenerator] Material reskin saved successfully.");
         }
 
-        private void GenerateLevels()
+        public void GenerateLevels()
         {
+            // Self-healing template backup if template is Level1.unity
+            if (_templateScenePath == "Assets/RedRender Games/HideFindSeek/Scenes/Level1.unity")
+            {
+                string backupPath = "Assets/RedRender Games/HideFindSeek/Scenes/TemplateLevel.unity";
+                if (!System.IO.File.Exists(backupPath))
+                {
+                    AssetDatabase.CopyAsset(_templateScenePath, backupPath);
+                    AssetDatabase.Refresh();
+                    Debug.Log($"[LevelGenerator] Backed up Level1.unity to {backupPath}");
+                }
+                _templateScenePath = backupPath;
+            }
+
             if (!File.Exists(_templateScenePath))
             {
-                EditorUtility.DisplayDialog("Error", $"Template scene not found at: {_templateScenePath}", "OK");
+                if (!silentMode)
+                {
+                    EditorUtility.DisplayDialog("Error", $"Template scene not found at: {_templateScenePath}", "OK");
+                }
+                else
+                {
+                    Debug.LogError($"[LevelGenerator] Template scene not found at: {_templateScenePath}");
+                }
                 return;
             }
 
             // Save current scene first
-            EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
+            if (silentMode)
+            {
+                EditorSceneManager.SaveOpenScenes();
+            }
+            else
+            {
+                EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
+            }
 
             for (int levelIndex = _startLevel; levelIndex <= _endLevel; levelIndex++)
             {
@@ -183,7 +217,14 @@ namespace Game.LevelGenerator
             // 7. Add generated levels to Build Settings
             AddLevelsToBuildSettings();
 
-            EditorUtility.DisplayDialog("Success", $"Generated levels {_startLevel} to {_endLevel} successfully!", "OK");
+            if (!silentMode)
+            {
+                EditorUtility.DisplayDialog("Success", $"Generated levels {_startLevel} to {_endLevel} successfully!", "OK");
+            }
+            else
+            {
+                Debug.Log($"[LevelGenerator] Generated levels {_startLevel} to {_endLevel} successfully!");
+            }
         }
 
         private void ReskinLevelMaterials(int levelIndex, LevelView levelView)
@@ -402,12 +443,12 @@ namespace Game.LevelGenerator
             {
                 GameObject spotGO = new GameObject($"Spotlight_{i + 1}");
                 spotGO.transform.SetParent(spotlightsGO.transform, false);
-                spotGO.transform.localPosition = positions[i];
+                spotGO.transform.localPosition = positions[i] * _levelScale;
                 spotGO.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
 
                 Light lightComp = spotGO.AddComponent<Light>();
                 lightComp.type = LightType.Spot;
-                lightComp.range = 18f;
+                lightComp.range = 18f * _levelScale;
                 lightComp.spotAngle = 105f;
                 lightComp.color = spotlightColor;
                 lightComp.intensity = 8f;
@@ -417,51 +458,130 @@ namespace Game.LevelGenerator
 
         private void RandomizeLevelLayout(LevelView levelView)
         {
-            // Collect only inner walls to randomise
-            List<Transform> obstacles = new List<Transform>();
-
-            // Find all Walls inside Level0/Walls / Level3/Walls
-            var walls = levelView.transform.Find("Level0/Walls") ?? levelView.transform.Find("Level3/Walls");
-            if (walls != null)
+            // 1. Scale FloorMesh
+            Transform floorMesh = levelView.transform.Find("Level0/FloorMesh") ?? levelView.transform.Find("Level3/FloorMesh");
+            if (floorMesh != null)
             {
-                foreach (Transform child in walls)
+                floorMesh.localScale = new Vector3(20f * _levelScale, 20f * _levelScale, 1f);
+                EditorUtility.SetDirty(floorMesh.gameObject);
+            }
+
+            // 2. Scale Doors
+            var doorsContainer = levelView.transform.Find("Level0/Doors") ?? levelView.transform.Find("Level3/Doors");
+            if (doorsContainer != null)
+            {
+                foreach (Transform door in doorsContainer)
                 {
-                    // Only collect inner walls (whose X and Z local positions are within playable bounds, not on the outer border at +/- 10)
-                    if (Mathf.Abs(child.localPosition.x) < 9.5f && Mathf.Abs(child.localPosition.z) < 9.5f)
-                    {
-                        obstacles.Add(child);
-                    }
+                    door.localPosition = new Vector3(door.localPosition.x * _levelScale, door.localPosition.y, door.localPosition.z * _levelScale);
+                    EditorUtility.SetDirty(door.gameObject);
                 }
             }
 
-            // Area boundary constraints (strictly inside the outer walls at 10)
-            float minRadius = 2.0f;
-            float maxRadius = 8.5f;
+            // 3. Find and scale outer walls, destroy inner walls
+            var walls = levelView.transform.Find("Level0/Walls") ?? levelView.transform.Find("Level3/Walls");
+            if (walls != null)
+            {
+                List<GameObject> toDestroy = new List<GameObject>();
+                foreach (Transform child in walls)
+                {
+                    // If it is an outer wall (on the boundary)
+                    if (Mathf.Abs(child.localPosition.x) >= 9.5f || Mathf.Abs(child.localPosition.z) >= 9.5f)
+                    {
+                        child.localPosition = new Vector3(child.localPosition.x * _levelScale, child.localPosition.y, child.localPosition.z * _levelScale);
+                        child.localScale = new Vector3(child.localScale.x * _levelScale, child.localScale.y, child.localScale.z);
+                        EditorUtility.SetDirty(child.gameObject);
+                    }
+                    else
+                    {
+                        toDestroy.Add(child.gameObject);
+                    }
+                }
 
-            // Pick random locations for inner obstacles
+                foreach (var go in toDestroy)
+                {
+                    DestroyImmediate(go);
+                }
+            }
+
+            // --- Spawn Procedural Partition Walls & Internal Room Doors ---
+            if (walls != null && doorsContainer != null)
+            {
+                float vWall1X = -4.0f * _levelScale;
+                float vWall2X = 4.0f * _levelScale;
+                float zRange = 8.0f * _levelScale;
+
+                // Vertical Wall 1 (Left Room Divider)
+                SpawnPartitionWallLine(walls, doorsContainer, new Vector3(vWall1X, 0f, -zRange), new Vector3(vWall1X, 0f, zRange), 0.5f);
+
+                // Vertical Wall 2 (Right Room Divider)
+                SpawnPartitionWallLine(walls, doorsContainer, new Vector3(vWall2X, 0f, -zRange), new Vector3(vWall2X, 0f, zRange), 0.5f);
+
+                // Horizontal Wall 1 (Left Inner Room Splitter)
+                SpawnPartitionWallLine(walls, doorsContainer, new Vector3(-8.0f * _levelScale, 0f, 0f), new Vector3(vWall1X, 0f, 0f), 0.5f);
+
+                // Horizontal Wall 2 (Right Inner Room Splitter)
+                SpawnPartitionWallLine(walls, doorsContainer, new Vector3(vWall2X, 0f, 0f), new Vector3(8.0f * _levelScale, 0f, 0f), 0.5f);
+            }
+
+            // Define modular office furniture prefabs from VNB Office Set
+            string[] furniturePaths = new string[]
+            {
+                "Assets/VNB - Office Set/Prefabs/Office/desk_1.prefab",
+                "Assets/VNB - Office Set/Prefabs/Office/desk_2.prefab",
+                "Assets/VNB - Office Set/Prefabs/Office/desk_3.prefab",
+                "Assets/VNB - Office Set/Prefabs/Office/desk_4_2_people.prefab",
+                "Assets/VNB - Office Set/Prefabs/Office/desk_5.prefab",
+                "Assets/VNB - Office Set/Prefabs/Furniture/bookshelf.prefab",
+                "Assets/VNB - Office Set/Prefabs/Furniture/file_cabinet_medium.prefab",
+                "Assets/VNB - Office Set/Prefabs/Furniture/file_cabinet_small.prefab",
+                "Assets/VNB - Office Set/Prefabs/Furniture/counter_a_1.prefab",
+                "Assets/VNB - Office Set/Prefabs/Furniture/counter_a_2.prefab",
+                "Assets/VNB - Office Set/Prefabs/Furniture/table.prefab",
+                "Assets/VNB - Office Set/Prefabs/Furniture/whiteboard_wall.prefab",
+                "Assets/VNB - Office Set/Prefabs/Office/printer.prefab"
+            };
+
+            // Area boundary constraints (scaled according to level size)
+            float minRadius = 2.0f * _levelScale;
+            float maxRadius = 8.5f * _levelScale;
             List<Vector3> placedPositions = new List<Vector3>();
 
-            foreach (var obstacle in obstacles)
+            // Spawn random modular office furniture items
+            int numObstacles = Random.Range(11, 16); // 11 to 15 furniture items per level
+
+            for (int i = 0; i < numObstacles; i++)
             {
                 Vector3 pos = Vector3.zero;
                 bool valid = false;
 
-                // Try to find a non-overlapping random spot
+                // Try to find a non-overlapping spot
                 for (int attempts = 0; attempts < 40; attempts++)
                 {
                     float angle = Random.Range(0f, Mathf.PI * 2f);
                     float r = Random.Range(minRadius, maxRadius);
-                    pos = new Vector3(Mathf.Cos(angle) * r, obstacle.position.y, Mathf.Sin(angle) * r);
+                    pos = new Vector3(Mathf.Cos(angle) * r, 0f, Mathf.Sin(angle) * r);
 
-                    // Check overlaps with previously placed obstacles
                     bool overlaps = false;
                     foreach (var placed in placedPositions)
                     {
-                        if (Vector3.Distance(pos, placed) < 1.8f)
+                        if (Vector3.Distance(pos, placed) < _minWallDistance)
                         {
                             overlaps = true;
                             break;
                         }
+                    }
+
+                    // Check distance to vertical walls to avoid overlapping partition walls
+                    float vWall1X = -4.0f * _levelScale;
+                    float vWall2X = 4.0f * _levelScale;
+                    if (Mathf.Abs(pos.x - vWall1X) < 1.8f || Mathf.Abs(pos.x - vWall2X) < 1.8f)
+                    {
+                        overlaps = true;
+                    }
+                    // Check distance to horizontal walls to avoid overlapping partition walls
+                    if (Mathf.Abs(pos.z) < 1.8f && (pos.x < vWall1X || pos.x > vWall2X))
+                    {
+                        overlaps = true;
                     }
 
                     if (!overlaps)
@@ -471,12 +591,51 @@ namespace Game.LevelGenerator
                     }
                 }
 
-                if (valid)
+                if (valid && walls != null)
                 {
-                    obstacle.position = pos;
-                    // Snap rotation to 0 or 90 degrees for a clean office cubicle look!
-                    obstacle.rotation = Quaternion.Euler(0f, Random.Range(0, 2) * 90f, 0f);
-                    placedPositions.Add(pos);
+                    string prefabPath = furniturePaths[Random.Range(0, furniturePaths.Length)];
+                    GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                    if (prefab != null)
+                    {
+                        GameObject spawned = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+                        if (spawned != null)
+                        {
+                            spawned.transform.SetParent(walls);
+                            spawned.transform.localPosition = pos;
+                            spawned.transform.localRotation = Quaternion.Euler(0f, Random.Range(0, 4) * 90f, 0f);
+                            spawned.transform.localScale = Vector3.one * 1.5f; // scale matching characters
+
+                            // Ensure it has a box collider or mesh collider
+                            if (spawned.GetComponentInChildren<Collider>() == null)
+                            {
+                                var renderers = spawned.GetComponentsInChildren<MeshRenderer>();
+                                Bounds combinedBounds = new Bounds(Vector3.zero, Vector3.zero);
+                                bool hasBounds = false;
+                                foreach (var rdr in renderers)
+                                {
+                                    if (!hasBounds)
+                                    {
+                                        combinedBounds = rdr.bounds;
+                                        hasBounds = true;
+                                    }
+                                    else
+                                    {
+                                        combinedBounds.Encapsulate(rdr.bounds);
+                                    }
+                                }
+
+                                if (hasBounds)
+                                {
+                                    BoxCollider col = spawned.AddComponent<BoxCollider>();
+                                    col.center = spawned.transform.InverseTransformPoint(combinedBounds.center);
+                                    col.size = spawned.transform.InverseTransformVector(combinedBounds.size);
+                                }
+                            }
+
+                            placedPositions.Add(pos);
+                            EditorUtility.SetDirty(spawned);
+                        }
+                    }
                 }
             }
 
@@ -499,7 +658,7 @@ namespace Game.LevelGenerator
                         bool tooClose = false;
                         foreach (var obstaclePos in placedPositions)
                         {
-                            if (Vector3.Distance(pos, obstaclePos) < 1.0f)
+                            if (Vector3.Distance(pos, obstaclePos) < 1.0f * Mathf.Min(_levelScale, 1.5f))
                             {
                                 tooClose = true;
                                 break;
@@ -516,6 +675,7 @@ namespace Game.LevelGenerator
                     if (valid)
                     {
                         coin.position = pos;
+                        EditorUtility.SetDirty(coin.gameObject);
                     }
                 }
             }
@@ -525,6 +685,7 @@ namespace Game.LevelGenerator
             if (bossTransform != null)
             {
                 bossTransform.position = new Vector3(0f, bossTransform.position.y, 0f);
+                EditorUtility.SetDirty(bossTransform.gameObject);
             }
 
             // Reposition other units at random open spots (including UnitA/PlayerA which are the Employee/Hider players)
@@ -565,13 +726,159 @@ namespace Game.LevelGenerator
                     {
                         enemy.position = pos;
                         enemy.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                        EditorUtility.SetDirty(enemy.gameObject);
                     }
+                }
+            }
+
+            // --- Spawn Coffee Speed Power-Ups ---
+            Transform levelRoot = levelView.transform.Find("Level0") ?? levelView.transform.Find("Level3");
+            Transform powerUpsContainer = null;
+            if (levelRoot != null)
+            {
+                powerUpsContainer = levelRoot.Find("PowerUps");
+                if (powerUpsContainer != null)
+                {
+                    DestroyImmediate(powerUpsContainer.gameObject);
+                }
+                GameObject powerUpsGO = new GameObject("PowerUps");
+                powerUpsGO.transform.SetParent(levelRoot, false);
+                powerUpsContainer = powerUpsGO.transform;
+            }
+
+            if (powerUpsContainer != null)
+            {
+                string cupPrefabPath = "Assets/VNB - Office Set/Prefabs/Food/coffee_cup.prefab";
+                string glowPrefabPath = "Assets/JMO Assets/Cartoon FX Remaster/CFXR Prefabs/Misc/CFXR3 Ambient Glows.prefab";
+                GameObject cupPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(cupPrefabPath);
+                GameObject glowPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(glowPrefabPath);
+
+                if (cupPrefab != null && glowPrefab != null)
+                {
+                    List<Vector3> powerUpPositions = new List<Vector3>();
+                    for (int p = 0; p < 2; p++)
+                    {
+                        Vector3 pos = Vector3.zero;
+                        bool valid = false;
+
+                        for (int attempts = 0; attempts < 50; attempts++)
+                        {
+                            float angle = Random.Range(0f, Mathf.PI * 2f);
+                            float r = Random.Range(minRadius, maxRadius);
+                            pos = new Vector3(Mathf.Cos(angle) * r, 0f, Mathf.Sin(angle) * r);
+
+                            // Check distance to furniture obstacles
+                            bool overlaps = false;
+                            foreach (var obstaclePos in placedPositions)
+                            {
+                                if (Vector3.Distance(pos, obstaclePos) < 1.8f)
+                                {
+                                    overlaps = true;
+                                    break;
+                                }
+                            }
+
+                            // Check distance to other powerups
+                            foreach (var puPos in powerUpPositions)
+                            {
+                                if (Vector3.Distance(pos, puPos) < 4.0f)
+                                {
+                                    overlaps = true;
+                                    break;
+                                }
+                            }
+
+                            // Check distance to vertical partition walls
+                            float vWall1X = -4.0f * _levelScale;
+                            float vWall2X = 4.0f * _levelScale;
+                            if (Mathf.Abs(pos.x - vWall1X) < 1.8f || Mathf.Abs(pos.x - vWall2X) < 1.8f)
+                            {
+                                overlaps = true;
+                            }
+                            // Check distance to horizontal partition walls
+                            if (Mathf.Abs(pos.z) < 1.8f && (pos.x < vWall1X || pos.x > vWall2X))
+                            {
+                                overlaps = true;
+                            }
+
+                            // Ensure it's not too close to the center (boss spawning point)
+                            if (Vector3.Distance(pos, Vector3.zero) < 3.0f)
+                            {
+                                overlaps = true;
+                            }
+
+                            if (!overlaps)
+                            {
+                                valid = true;
+                                break;
+                            }
+                        }
+
+                        if (valid)
+                        {
+                            powerUpPositions.Add(pos);
+
+                            // Create the parent CoffeePowerUp GameObject
+                            GameObject powerUpGO = new GameObject($"CoffeePowerUp_{p + 1}");
+                            powerUpGO.transform.SetParent(powerUpsContainer, false);
+                            powerUpGO.transform.localPosition = pos;
+
+                            // Add collider (used only for editor gizmo visualization; detection uses OverlapSphere at runtime)
+                            SphereCollider triggerCol = powerUpGO.AddComponent<SphereCollider>();
+                            triggerCol.isTrigger = true;
+                            triggerCol.radius = 1.5f;
+
+                            // Add CoffeePowerUp component
+                            powerUpGO.AddComponent<CoffeePowerUp>();
+
+                            // Create the "Visuals" child
+                            GameObject visualsGO = new GameObject("Visuals");
+                            visualsGO.transform.SetParent(powerUpGO.transform, false);
+                            visualsGO.transform.localPosition = new Vector3(0f, 0.5f, 0f);
+
+                            // Instantiate the coffee cup mesh as child of Visuals
+                            GameObject cupInstance = PrefabUtility.InstantiatePrefab(cupPrefab) as GameObject;
+                            if (cupInstance != null)
+                            {
+                                cupInstance.transform.SetParent(visualsGO.transform, false);
+                                cupInstance.transform.localPosition = Vector3.zero;
+                                cupInstance.transform.localRotation = Quaternion.identity;
+                                cupInstance.transform.localScale = Vector3.one * 15.0f; // Large enough to be clearly visible in the level
+                            }
+
+                            // Instantiate the glowing particle effect as child of Visuals so it hides when cup is collected
+                            GameObject glowInstance = PrefabUtility.InstantiatePrefab(glowPrefab) as GameObject;
+                            if (glowInstance != null)
+                            {
+                                glowInstance.transform.SetParent(visualsGO.transform, false);
+                                glowInstance.transform.localPosition = new Vector3(0f, -0.3f, 0f);
+                                glowInstance.transform.localRotation = Quaternion.identity;
+                                glowInstance.transform.localScale = Vector3.one * 3.5f; // Glow around the large cup
+                            }
+
+                            EditorUtility.SetDirty(powerUpGO);
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"[LevelGenerator] Prefabs not found at paths. Cup: {cupPrefabPath}, Glow: {glowPrefabPath}");
                 }
             }
         }
 
         private void SetNavigationStatic(LevelView levelView)
         {
+            var walls = levelView.transform.Find("Level0/Walls") ?? levelView.transform.Find("Level3/Walls");
+            if (walls != null)
+            {
+                var transforms = walls.GetComponentsInChildren<Transform>(true);
+                foreach (var t in transforms)
+                {
+                    GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.NavigationStatic);
+                }
+            }
+
             var renderers = levelView.GetComponentsInChildren<MeshRenderer>(true);
             foreach (var renderer in renderers)
             {
@@ -579,6 +886,61 @@ namespace Game.LevelGenerator
                 if (name.Contains("floor") || name.Contains("ground") || name.Contains("wall") || name.Contains("building"))
                 {
                     GameObjectUtility.SetStaticEditorFlags(renderer.gameObject, StaticEditorFlags.NavigationStatic);
+                }
+            }
+        }
+
+        private void SpawnPartitionWallLine(Transform wallsContainer, Transform doorsContainer, Vector3 start, Vector3 end, float doorwayT)
+        {
+            string wallPath = "Assets/RedRender Games/HideFindSeek/ResourcesStatic/Prefabs/Walls/WallLevel1.prefab";
+            string doorPath = "Assets/RedRender Games/HideFindSeek/ResourcesStatic/Prefabs/Environment/Door.prefab";
+
+            GameObject wallPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(wallPath);
+            GameObject doorPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(doorPath);
+
+            if (wallPrefab == null || doorPrefab == null) return;
+
+            float wallLength = 3.0f; // Standard wall length (scaled)
+            Vector3 direction = end - start;
+            float totalLength = direction.magnitude;
+            direction.Normalize();
+
+            int numSegments = Mathf.RoundToInt(totalLength / wallLength);
+            float step = totalLength / numSegments;
+
+            // Determine which segment index gets the door
+            int doorSegmentIndex = Mathf.Clamp(Mathf.RoundToInt(doorwayT * (numSegments - 1)), 1, numSegments - 2);
+
+            for (int i = 0; i < numSegments; i++)
+            {
+                Vector3 pos = start + direction * (i * step + step * 0.5f);
+                Quaternion rot = Quaternion.LookRotation(new Vector3(-direction.z, 0f, direction.x), Vector3.up);
+
+                if (i == doorSegmentIndex)
+                {
+                    // Spawn Door
+                    GameObject spawnedDoor = PrefabUtility.InstantiatePrefab(doorPrefab) as GameObject;
+                    if (spawnedDoor != null)
+                    {
+                        spawnedDoor.transform.SetParent(doorsContainer);
+                        spawnedDoor.transform.position = pos;
+                        spawnedDoor.transform.rotation = rot;
+                        spawnedDoor.transform.localScale = new Vector3(1.0f, 1.0f, 1.0f); // Match WallLevel1 height
+                        EditorUtility.SetDirty(spawnedDoor);
+                    }
+                }
+                else
+                {
+                    // Spawn Wall
+                    GameObject spawnedWall = PrefabUtility.InstantiatePrefab(wallPrefab) as GameObject;
+                    if (spawnedWall != null)
+                    {
+                        spawnedWall.transform.SetParent(wallsContainer);
+                        spawnedWall.transform.position = pos;
+                        spawnedWall.transform.rotation = rot;
+                        spawnedWall.transform.localScale = new Vector3(2.0f * wallLength, 1.0f, 1.0f); // Scale to match WallLevel1 dimensions
+                        EditorUtility.SetDirty(spawnedWall);
+                    }
                 }
             }
         }

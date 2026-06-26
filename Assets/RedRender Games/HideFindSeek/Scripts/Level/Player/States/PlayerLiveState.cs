@@ -79,7 +79,7 @@ namespace Game.Player.States
                 _transform.localEulerAngles = new Vector3(0f, angle, 0f);
 
                 direction = _transform.forward;
-                float speed = _config.GetValue(GameParam.Speed);
+                float speed = _config.GetValue(GameParam.Speed) * _playerController.View.SpeedMultiplier;
                 
                 // Scale player speed based on difficulty
                 int difficulty = PlayerPrefs.GetInt("Difficulty", 1);

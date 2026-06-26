@@ -28,15 +28,16 @@ namespace Game.Enemy
             {
                 float baseSpeed = _config.GetValue(GameParam.EnemySpeed);
                 int difficulty = PlayerPrefs.GetInt("Difficulty", 1);
+                float difficultyMultiplier = 1.0f;
                 if (difficulty == 0) // Easy
                 {
-                    return baseSpeed * 0.75f; // -25% speed
+                    difficultyMultiplier = 0.75f; // -25% speed
                 }
                 else if (difficulty == 2) // Hard
                 {
-                    return baseSpeed * 1.3f; // +30% speed
+                    difficultyMultiplier = 1.3f; // +30% speed
                 }
-                return baseSpeed;
+                return baseSpeed * difficultyMultiplier * _view.SpeedMultiplier;
             }
         }
 
@@ -94,6 +95,10 @@ namespace Game.Enemy
             if (isVictim)
             {
                 _view.name = "Enemy_Victim";
+                if (_view.GetComponent<AIJuiceEffects>() == null)
+                {
+                    _view.gameObject.AddComponent<AIJuiceEffects>();
+                }
             }
             else
             {

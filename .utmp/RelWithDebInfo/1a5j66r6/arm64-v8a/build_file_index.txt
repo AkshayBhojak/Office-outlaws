@@ -1,0 +1,2 @@
+I:\Unity Project\Office-outlaws\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\CMakeLists.txt
+I:\Unity Project\Office-outlaws\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\CMakeLists.txt

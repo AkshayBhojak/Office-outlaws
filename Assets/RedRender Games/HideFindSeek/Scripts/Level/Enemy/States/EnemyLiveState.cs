@@ -160,6 +160,25 @@ namespace Game.Enemy.States
                     float pushForce = (difficulty == 2) ? 18f : 12f;
                     targetView.KnockbackVelocity = pushDirection * pushForce;
 
+                    // Spawn visual stun effects!
+                    // 1. Spawn comic "POW!" text above head
+                    var powPrefab = Resources.Load<GameObject>("Prefabs/CFXR _POW_");
+                    if (powPrefab != null)
+                    {
+                        var pow = GameObject.Instantiate(powPrefab, targetPos + Vector3.up * 1.8f, Quaternion.identity);
+                        pow.transform.localScale = Vector3.one * 1.5f;
+                        GameObject.Destroy(pow, 1.2f);
+                    }
+
+                    // 2. Attach dizzy sparks above head
+                    var sparksPrefab = Resources.Load<GameObject>("Prefabs/CFXR2 Sparks Rain");
+                    if (sparksPrefab != null)
+                    {
+                        var sparks = GameObject.Instantiate(sparksPrefab, targetView.transform.position + Vector3.up * 1.9f, Quaternion.identity, targetView.transform);
+                        sparks.transform.localScale = Vector3.one * 0.6f;
+                        GameObject.Destroy(sparks, 0.8f);
+                    }
+
                     // Play push sound
                     if (Game.Audio.SoundManager.Instance != null)
                     {

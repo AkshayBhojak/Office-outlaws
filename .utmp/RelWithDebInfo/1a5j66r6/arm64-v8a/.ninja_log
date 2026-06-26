@@ -1,0 +1,10 @@
+# ninja log v5
+23	1531	8041688699529926	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	a7171c29f033c82c
+17	1545	8041688699639277	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	b27d00765b6c129
+37	1561	8041688699820920	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	4f9d2673e9c2879
+11	1569	8041688699877162	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	20583e44af13a400
+6	1637	8041688700579526	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	61e43b6f936e92e2
+46	1789	8041688702157569	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	1baa6d5486aaecc
+30	1801	8041688702238148	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	7dfa3123468f5820
+0	1907	8041688703312104	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	d082fda26b7f3f58
+1908	2392	8041688707559129	I:/Unity Project/Office-outlaws/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/1a5j66r6/obj/arm64-v8a/libgame.so	176eda9f5996366a

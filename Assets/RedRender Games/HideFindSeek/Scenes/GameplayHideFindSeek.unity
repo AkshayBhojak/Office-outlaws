@@ -1257,11 +1257,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de817af3c3a1a9640ba97edae5209fed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Ads.AdManager
-  _adMobAppId: ca-app-pub-2732193181554212~2541179642
-  _bannerAdUnitId: ca-app-pub-2732193181554212/1695794427
-  _interstitialAdUnitId: ca-app-pub-2732193181554212/4301776469
-  _rewardedAdUnitId: ca-app-pub-2732193181554212/5801431099
-  _rewardedInterstitialAdUnitId: ca-app-pub-2732193181554212/9604110589
+  _adMobAppId: ca-app-pub-3940256099942544~3347511713
+  _bannerAdUnitId: ca-app-pub-3940256099942544/6300978111
+  _interstitialAdUnitId: ca-app-pub-3940256099942544/1033173712
+  _rewardedAdUnitId: ca-app-pub-3940256099942544/5224354917
+  _rewardedInterstitialAdUnitId: ca-app-pub-3940256099942544/5354046379
 --- !u!4 &666791740
 Transform:
   m_ObjectHideFlags: 0

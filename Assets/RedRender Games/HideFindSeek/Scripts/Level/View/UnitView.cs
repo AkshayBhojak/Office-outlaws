@@ -27,6 +27,25 @@ namespace Game
         [HideInInspector]
         public Vector3 KnockbackVelocity;
 
+        [HideInInspector]
+        public float SpeedMultiplier = 1.0f;
+
+        [HideInInspector]
+        public float SpeedBoostExpiryTime = 0f;
+
+        public void SetSpeedMultiplier(float newMultiplier)
+        {
+            if (Mathf.Approximately(SpeedMultiplier, newMultiplier)) return;
+
+            float oldMultiplier = SpeedMultiplier;
+            SpeedMultiplier = newMultiplier;
+
+            if (MeshAgent != null && MeshAgent.enabled)
+            {
+                MeshAgent.speed = (MeshAgent.speed / oldMultiplier) * newMultiplier;
+            }
+        }
+
         private bool _isVictim;
         private bool _isVissible;
 
@@ -116,6 +135,49 @@ namespace Game
 
             var result = _radar.GetSeenVictim();
             return (null != result) ? result : _circleRadar.GetSeenVictim();
+        }
+
+        public bool IsTargetVisible(UnitView target)
+        {
+            if (target == null || target.IsDied()) return false;
+
+            Vector3 bossPos = transform.position;
+            Vector3 targetPos = target.transform.position;
+            float distance = Vector3.Distance(bossPos, targetPos);
+
+            // 1. Check Circle Radar (all-around vision with small radius)
+            float circleRadius = 3f; // Default circle radar radius
+            int wallMask = LayerUtils.GetRadarAllLayerMask();
+
+            if (distance <= circleRadius)
+            {
+                // Linecast to check for wall blockage (raise by 0.5f to avoid floor intersection)
+                if (!Physics.Linecast(bossPos + Vector3.up * 0.5f, targetPos + Vector3.up * 0.5f, wallMask))
+                {
+                    return true;
+                }
+            }
+
+            // 2. Check Front Radar Cone
+            if (_radar != null && _radar.gameObject.activeSelf)
+            {
+                Vector3 localPos = _radar.transform.InverseTransformPoint(targetPos);
+                // Radar size (default width = 2.5f, length = 4.5f)
+                float width = 2.5f;
+                float length = 4.5f;
+
+                // Check if inside the bounding box of the cone
+                if (Mathf.Abs(localPos.x) <= width && localPos.z >= 0f && localPos.z <= length)
+                {
+                    // Linecast to check for wall blockage (raise by 0.5f to avoid floor intersection)
+                    if (!Physics.Linecast(bossPos + Vector3.up * 0.5f, targetPos + Vector3.up * 0.5f, wallMask))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         public void SetOutline(Material[] materials)

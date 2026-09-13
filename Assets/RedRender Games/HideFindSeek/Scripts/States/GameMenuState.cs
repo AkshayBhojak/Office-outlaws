@@ -16,7 +16,7 @@ namespace Game.States
             _gameView.CameraFollower.ResetToDefaultPosition();
             _gameView.CameraFollower.ZoomTo(_gameConfig.GetValue(GameParam.CameraMenuZoom), 0);
 
-            _gameView.GameHud.gameObject.SetActive(false);
+            _gameView.GameHud.gameObject.SetActive(false);  // Ensure gameplay HUD is hidden (prevents grey screen flash)
             _gameView.MenuHud.gameObject.SetActive(true);
             _gameView.MenuHud.BtnHide.onClick.AddListener(OnBtnHideClicked);
             _gameView.MenuHud.BtnSeek.onClick.AddListener(OnBtnSeekClicked);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Utilities;
@@ -42,7 +42,7 @@ namespace Game.Config
             ParamsMap[GameParam.MinDistanceToEnemy] = 5;
             ParamsMap[GameParam.RescueReloadDuration] = 3;
 
-            ParamsMap[GameParam.GameStartDelayDuration] = 3;
+            ParamsMap[GameParam.GameStartDelayDuration] = 0;
             ParamsMap[GameParam.CameraGameZoom] = 60;
             ParamsMap[GameParam.CameraMenuZoom] = 88;
             ParamsMap[GameParam.CameraSeekZoom] = 15;

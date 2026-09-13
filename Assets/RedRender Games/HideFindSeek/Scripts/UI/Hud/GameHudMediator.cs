@@ -14,6 +14,7 @@ namespace Game.UI
         [Inject] private LevelView _levelView;
         [Inject] private GameModel _gameModel;
         [Inject] private GameManager _gameManager;
+        [Inject] private Game.States.GameStateManager _gameStateManager;
 
         private readonly bool _isHided;
         private float _startTime;
@@ -25,6 +26,15 @@ namespace Game.UI
 
         protected override void Show()
         {
+            _view.SetupMenuButton();
+            _view.OnMenuClicked = () => 
+            {
+                _gameStateManager.SwitchToState(new Game.States.GameUnloadState());
+            };
+
+            // Show tutorial popup explaining the objective
+            _view.ShowTutorialPopup(_isHided);
+
             _view.TimeToHideLabelText = (_isHided) ? "Time to Hide" : "Starting in";
 
             var timeToHide = _config.GetValue(GameParam.GameStartDelayDuration);
@@ -48,6 +58,9 @@ namespace Game.UI
 
         protected override void Hide()
         {
+            if (_view != null)
+                _view.OnMenuClicked = null;
+
             DOTween.Kill(_view);
             _gameManager.COINS_COLLECTED -= OnCoinsCollected;
             _timer.POST_TICK -= TimerOnPOST_TICK;

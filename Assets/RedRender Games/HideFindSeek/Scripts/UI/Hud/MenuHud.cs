@@ -44,6 +44,10 @@ namespace Game.UI
         {
             SetupTitle();
 
+            // Reparent Employee and Boss buttons to MenuHud so they appear in the center of the screen (same as difficulty buttons)
+            BtnHide.transform.SetParent(transform, true);
+            BtnSeek.transform.SetParent(transform, true);
+
             // Adjust button dimensions and positions to fit the text cleanly
             RectTransform hideRect = BtnHide.GetComponent<RectTransform>();
             RectTransform seekRect = BtnSeek.GetComponent<RectTransform>();
@@ -51,10 +55,16 @@ namespace Game.UI
             {
                 hideRect.sizeDelta = new Vector2(230f, 100f);
                 seekRect.sizeDelta = new Vector2(230f, 100f);
+                
+                // Ensure anchors match the difficulty buttons (center screen)
+                hideRect.anchorMin = new Vector2(0.5f, 0.5f);
+                hideRect.anchorMax = new Vector2(0.5f, 0.5f);
+                seekRect.anchorMin = new Vector2(0.5f, 0.5f);
+                seekRect.anchorMax = new Vector2(0.5f, 0.5f);
 
-                // Space them out symmetrically on the horizontal axis
-                hideRect.anchoredPosition = new Vector2(-135f, hideRect.anchoredPosition.y);
-                seekRect.anchoredPosition = new Vector2(135f, seekRect.anchoredPosition.y);
+                // Space them out symmetrically and position them exactly where Difficulty buttons are (Y = 10)
+                hideRect.anchoredPosition = new Vector2(-135f, 10f);
+                seekRect.anchoredPosition = new Vector2(135f, 10f);
             }
 
             // Dynamic renaming of buttons to match the Office Outlaws theme!
@@ -111,12 +121,15 @@ namespace Game.UI
             TxtLevelName.transform.localScale = Vector3.zero;
             TxtLevelName.transform.DOScale(Vector3.one, 0.6f).SetDelay(0.2f).SetEase(Ease.OutBack).SetUpdate(true);
 
-            // 3. Animate Buttons
+            // 3. Keep Role Buttons Hidden Initially (they will appear after difficulty selection)
             BtnHide.transform.localScale = Vector3.zero;
             BtnSeek.transform.localScale = Vector3.zero;
 
-            BtnHide.transform.DOScale(Vector3.one, 0.6f).SetDelay(0.3f).SetEase(Ease.OutBack).SetUpdate(true);
-            BtnSeek.transform.DOScale(Vector3.one, 0.6f).SetDelay(0.4f).SetEase(Ease.OutBack).SetUpdate(true);
+            // Fix Corner stretching on base buttons
+            var imgHide = BtnHide.GetComponent<Image>();
+            var imgSeek = BtnSeek.GetComponent<Image>();
+            if (imgHide != null) imgHide.pixelsPerUnitMultiplier = 2.5f;
+            if (imgSeek != null) imgSeek.pixelsPerUnitMultiplier = 2.5f;
 
             // 4. Attach Hover and Click Animators if not present
             if (BtnHide.GetComponent<UIButtonAnimator>() == null)
@@ -131,11 +144,25 @@ namespace Game.UI
             // 5. Setup and display Difficulty Selector buttons!
             SetupDifficultyButtons();
 
+            // 5.5 Always ensure Difficulty buttons are visible and Roles are hidden when menu opens
+            if (_btnEasy != null)
+            {
+                _btnEasy.transform.localScale = Vector3.zero;
+                _btnMedium.transform.localScale = Vector3.zero;
+                _btnHard.transform.localScale = Vector3.zero;
+                _btnEasy.transform.DOScale(Vector3.one, 0.5f).SetDelay(0.2f).SetEase(Ease.OutBack).SetUpdate(true);
+                _btnMedium.transform.DOScale(Vector3.one, 0.5f).SetDelay(0.3f).SetEase(Ease.OutBack).SetUpdate(true);
+                _btnHard.transform.DOScale(Vector3.one, 0.5f).SetDelay(0.4f).SetEase(Ease.OutBack).SetUpdate(true);
+            }
+
             // 6. Setup and display Levels selection button!
             SetupLevelsButton();
 
             // 7. Setup and display Settings button!
             SetupSettingsButton();
+
+            // 8. Setup Exit button with animation
+            SetupExitButton();
         }
 
         private Button _btnLevels;
@@ -467,15 +494,6 @@ namespace Game.UI
             if (mediumGo.GetComponent<UIButtonAnimator>() == null) mediumGo.AddComponent<UIButtonAnimator>();
             if (hardGo.GetComponent<UIButtonAnimator>() == null) hardGo.AddComponent<UIButtonAnimator>();
 
-            // Animate their entry
-            easyGo.transform.localScale = Vector3.zero;
-            mediumGo.transform.localScale = Vector3.zero;
-            hardGo.transform.localScale = Vector3.zero;
-
-            easyGo.transform.DOScale(Vector3.one, 0.5f).SetDelay(0.2f).SetEase(Ease.OutBack).SetUpdate(true);
-            mediumGo.transform.DOScale(Vector3.one, 0.5f).SetDelay(0.3f).SetEase(Ease.OutBack).SetUpdate(true);
-            hardGo.transform.DOScale(Vector3.one, 0.5f).SetDelay(0.4f).SetEase(Ease.OutBack).SetUpdate(true);
-
             // Apply active states colors
             RefreshDifficultyUI();
         }
@@ -486,19 +504,49 @@ namespace Game.UI
             PlayerPrefs.Save();
             RefreshDifficultyUI();
             Debug.Log($"[MenuHud] Difficulty changed to: {(diff == 0 ? "EASY" : diff == 1 ? "MEDIUM" : "HARD")}");
+
+            // Hide Difficulty buttons
+            if (_btnEasy != null)
+            {
+                _btnEasy.transform.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).SetUpdate(true);
+                _btnMedium.transform.DOScale(Vector3.zero, 0.3f).SetDelay(0.05f).SetEase(Ease.InBack).SetUpdate(true);
+                _btnHard.transform.DOScale(Vector3.zero, 0.3f).SetDelay(0.1f).SetEase(Ease.InBack).SetUpdate(true);
+            }
+
+            // Animate Role buttons in
+            if (BtnHide.transform.localScale.x < 0.1f)
+            {
+                BtnHide.transform.DOScale(Vector3.one, 0.5f).SetDelay(0.3f).SetEase(Ease.OutBack).SetUpdate(true);
+                BtnSeek.transform.DOScale(Vector3.one, 0.5f).SetDelay(0.4f).SetEase(Ease.OutBack).SetUpdate(true);
+            }
         }
 
         private void RefreshDifficultyUI()
         {
             int currentDiff = PlayerPrefs.GetInt("Difficulty", 1);
 
-            // Active vs Inactive Colors
-            Color activeColor = new Color(1f, 0.62f, 0.15f, 1f); // Vibrant Orange
-            Color inactiveColor = new Color(0.25f, 0.25f, 0.3f, 0.85f); // Dim Steel Grey
+            // Add or get Outline component
+            Outline GetOrAddOutline(Button btn)
+            {
+                if (btn == null) return null;
+                var outline = btn.GetComponent<Outline>();
+                if (outline == null)
+                {
+                    outline = btn.gameObject.AddComponent<Outline>();
+                    outline.effectColor = new Color(1f, 1f, 0f, 1f); // Yellow outline
+                    outline.effectDistance = new Vector2(4f, -4f);
+                }
+                return outline;
+            }
 
-            if (_btnEasy != null) _btnEasy.GetComponent<Image>().color = (currentDiff == 0) ? activeColor : inactiveColor;
-            if (_btnMedium != null) _btnMedium.GetComponent<Image>().color = (currentDiff == 1) ? activeColor : inactiveColor;
-            if (_btnHard != null) _btnHard.GetComponent<Image>().color = (currentDiff == 2) ? activeColor : inactiveColor;
+            if (_btnEasy != null) GetOrAddOutline(_btnEasy).enabled = (currentDiff == 0);
+            if (_btnMedium != null) GetOrAddOutline(_btnMedium).enabled = (currentDiff == 1);
+            if (_btnHard != null) GetOrAddOutline(_btnHard).enabled = (currentDiff == 2);
+
+            // Ensure base colors are normal
+            if (_btnEasy != null) _btnEasy.GetComponent<Image>().color = Color.white;
+            if (_btnMedium != null) _btnMedium.GetComponent<Image>().color = Color.white;
+            if (_btnHard != null) _btnHard.GetComponent<Image>().color = Color.white;
         }
 
         private Button _btnSettings;
@@ -784,6 +832,77 @@ namespace Game.UI
             {
                 _imgMusicToggle.sprite = musicOn ? _toggleOnSprite : _toggleOffSprite;
             }
+        }
+
+        private Button _btnExit;
+
+        private void SetupExitButton()
+        {
+            if (_btnExit != null) return;
+
+            // Create exit button by cloning BtnSeek for consistent visual style
+            GameObject exitGo = Instantiate(BtnSeek.gameObject, transform);
+            exitGo.name = "BtnExit";
+
+            // Position: bottom-center, above the AdMob banner (~100px)
+            RectTransform rect = exitGo.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0f);
+            rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(0f, 200f);
+            rect.sizeDelta = new Vector2(200f, 75f);
+
+            // Red danger color for exit
+            var img = exitGo.GetComponent<Image>();
+            if (img != null)
+            {
+                img.color = new Color(0.75f, 0.1f, 0.1f, 0.92f);
+            }
+
+            // Style text
+            var txt = exitGo.GetComponentInChildren<TextMeshProUGUI>();
+            if (txt != null)
+            {
+                txt.text = "EXIT";
+                txt.fontSize = 28f;
+                txt.fontStyle = FontStyles.Bold;
+                txt.alignment = TextAlignmentOptions.Center;
+                txt.color = Color.white;
+            }
+
+            // Wire up exit action
+            _btnExit = exitGo.GetComponent<Button>();
+            _btnExit.onClick.RemoveAllListeners();
+            _btnExit.onClick.AddListener(OnExitClicked);
+
+            // Add button hover/press animation
+            if (exitGo.GetComponent<UIButtonAnimator>() == null)
+            {
+                exitGo.AddComponent<UIButtonAnimator>();
+            }
+
+            // Entry animation: bounce in from below
+            exitGo.transform.localScale = Vector3.zero;
+            exitGo.transform.DOScale(Vector3.one, 0.55f)
+                .SetDelay(0.5f)
+                .SetEase(Ease.OutBack)
+                .SetUpdate(true);
+
+            // Subtle idle pulse animation (loops forever)
+            exitGo.transform.DOScale(new Vector3(1.04f, 1.04f, 1.04f), 1.2f)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetEase(Ease.InOutSine)
+                .SetUpdate(true)
+                .SetDelay(1.1f);
+        }
+
+        private void OnExitClicked()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
         }
     }
 }
